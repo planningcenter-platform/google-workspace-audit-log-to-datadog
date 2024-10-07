@@ -1,0 +1,250 @@
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Google Workspace Audit Logs to Datadog
+Parameters:
+  LogLevelApplicationParameter:
+    Type: String
+    Description: Choose the log level for application logs that are sent to CloudWatch Logs.
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+  LogLevelSystemParameter:
+    Type: String
+    Description: Choose the log level for Lambda system-generated logs that are sent to CloudWatch Logs.
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+  GoogleCredentialsParameter:
+    Type: String
+    Description: The contents of the credentials JSON file from the GCP Service Account key.
+    Default: "changeme"
+    NoEcho: true
+  GoogleAdminEmailParameter:
+    Type: String
+    Description: The user that requests to the Google Admin API are made on behalf of.
+    Default: "setme@example.com"
+  DatadogApiKeyParameter:
+    Type: String
+    Default: "changeme"
+    NoEcho: true
+Globals:
+  Function:
+    Timeout: 180
+    MemorySize: 256
+    LoggingConfig:
+      ApplicationLogLevel: !Ref LogLevelApplicationParameter
+      LogFormat: JSON
+      SystemLogLevel: !Ref LogLevelSystemParameter
+    Environment:
+      Variables:
+        LOG_LEVEL: !Ref LogLevelApplicationParameter
+        S3_BUCKET: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}"
+Resources:
+  GoogleWorkspaceAuditLogPollerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: bin/google-workspace-poll
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          GOOGLE_CREDENTIALS_SECRET_ARN: !Ref GoogleCredentialsSecret
+          GOOGLE_ADMIN_USER: !Ref GoogleAdminEmailParameter
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref GoogleCredentialsSecret
+        - S3WritePolicy:
+            BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}"
+      Events:
+        AccessTransparency:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"access_transparency","time_window_minutes":20}'
+        Admin:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"admin","time_window_minutes":20}'
+        Calendar:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(10 minute)
+            OmitName: True
+            Input: '{"application_name":"calendar","time_window_minutes":60}'
+        Chat:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"chat","time_window_minutes":20}'
+        Chrome:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"chrome","time_window_minutes":20}'
+        ContextAwareAccess:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"context_aware_access","time_window_minutes":20}'
+        DataStudio:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"data_studio","time_window_minutes":20}'
+        Drive:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"drive","time_window_minutes":20}'
+        GCP:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(10 minute)
+            OmitName: True
+            Input: '{"application_name":"gcp","time_window_minutes":180}'
+        GPlus:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(10 minute)
+            OmitName: True
+            Input: '{"application_name":"gplus","time_window_minutes":180}'
+        Groups:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(5 minute)
+            OmitName: True
+            Input: '{"application_name":"groups","time_window_minutes":180}'
+        GroupsEnterprise:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(5 minute)
+            OmitName: True
+            Input: '{"application_name":"groups_enterprise","time_window_minutes":180}'
+        Jamboard:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"jamboard","time_window_minutes":20}'
+        Keep:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(10 minute)
+            OmitName: True
+            Input: '{"application_name":"keep","time_window_minutes":180}'
+        Login:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(10 minute)
+            OmitName: True
+            Input: '{"application_name":"login","time_window_minutes":360}'
+        Meet:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"meet","time_window_minutes":20}'
+        Mobile:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"mobile","time_window_minutes":20}'
+        Rules:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"rules","time_window_minutes":20}'
+        Saml:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"saml","time_window_minutes":20}'
+        Token:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(10 minute)
+            OmitName: True
+            Input: '{"application_name":"token","time_window_minutes":180}'
+        UserAccounts:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(3 minute)
+            OmitName: True
+            Input: '{"application_name":"user_accounts","time_window_minutes":180}'
+        Vault:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+            OmitName: True
+            Input: '{"application_name":"vault","time_window_minutes":20}'
+  S3ToDatadogLogsPushFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: bin/s3-to-datadog-push
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          DATADOG_API_KEY_SECRET_ARN: !Ref DatadogAPIKeySecret
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref DatadogAPIKeySecret
+        - S3ReadPolicy:
+            BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}"
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref GoogleAuditLogsBucket
+            Events: s3:ObjectCreated:*
+  GoogleAuditLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 7
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 21
+  GoogleCredentialsSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      SecretString: !Ref GoogleCredentialsParameter
+  DatadogAPIKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      SecretString: !Ref DatadogApiKeyParameter
